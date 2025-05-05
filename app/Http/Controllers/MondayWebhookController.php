@@ -10,22 +10,25 @@ class MondayWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        // Log raw incoming request for debugging
+        // Step 1: Handle webhook URL verification challenge
+        if ($request->has('challenge')) {
+            Log::info('Responding to webhook challenge');
+            return response($request->get('challenge'), 200);
+        }
+
+        // Step 2: Handle real webhook payload
         Log::info('Monday Webhook Triggered:', $request->all());
 
-        // Extract input fields from the webhook payload
         $data = $request->input('inputFields');
         $itemId = $data['itemId'] ?? null;
         $boardId = $data['boardId'] ?? null;
         $columnId = $data['columnId'] ?? null;
         $value = $data['value'] ?? null;
 
-        // Validate required fields
         if (!$itemId || !$boardId || !$columnId || !$value) {
-            return response()->json(['error' => 'Missing required fields'], 400);
+            return response()->json(['error' => 'Missing required fields'], 422);
         }
 
-        // Save or update record in the database
         MondayItem::updateOrCreate(
             ['item_id' => $itemId],
             [
